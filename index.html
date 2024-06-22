@@ -3,53 +3,87 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dynamic Temperature SVG</title>
+    <title>Static Temperature Curve</title>
     <style>
-      /* CSS for the container with temperature values */
-      .temperature-container {
-        width: 90vw; /* Fixed width */
+      /* CSS for the scrollable SVG container */
+      .scrollable-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         overflow-x: auto; /* Enable horizontal scrolling */
+        width: 90vw; /* Fixed width for the container */
+        margin: 0 auto; /* Center align */
+        padding-top: 20px; /* Padding at the top */
+      }
+
+      /* CSS for temperature container */
+      .temperature-container {
         white-space: nowrap; /* Keep temperature values in a single line */
-        margin: 20px auto; /* Center align and add some margin */
+        display: inline-block; /* Ensure inline display for temperature items */
+        margin-bottom: 20px; /* Add some margin */
+        border: 1px saddlebrown solid;
       }
 
       /* CSS for temperature value items */
       .temperature-item {
-        display: inline-block; /* Display items inline */
-        padding: 8px; /* Padding for each item */
-        margin-right: 5px; /* Margin between items */
+        position: absolute; /* Position absolutely */
+        bottom: 30px; /* Adjust as needed */
+        transform: translateX(-50%); /* Center horizontally */
         background-color: #f0f0f0; /* Light background color */
-        border: 1px solid #ccc; /* Border */
+        padding: 4px 8px; /* Padding for each item */
+        border: 1px solid #333; /* Border */
         border-radius: 4px; /* Rounded corners */
+        font-size: 12px; /* Font size */
+        pointer-events: none; /* Disable pointer events */
       }
 
       /* CSS for SVG path */
-      #temperaturePath {
-        stroke: blue; /* Line color */
-        stroke-width: 2; /* Line width */
-        fill: none; /* No fill */
+      #temperatureChart {
+        width: 100%; /* Full width of the scrollable container */
+        height: 200px; /* Fixed height for the SVG */
+        position: relative; /* Position relative for absolute positioning */
+      }
+
+      /* CSS for tooltip */
+      .tooltip {
+        position: absolute;
+        display: none;
+        padding: 8px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        border-radius: 4px;
+        pointer-events: none;
       }
     </style>
   </head>
   <body>
-    <div class="temperature-container">
-      <!-- Temperature values will be dynamically added here -->
+    <div class="scrollable-container">
+      <div class="temperature-container">
+        <!-- Temperature values will be dynamically added here -->
+      </div>
+
+      <svg id="temperatureChart" xmlns="http://www.w3.org/2000/svg">
+        <!-- Static temperature values -->
+        <!-- <text x="50" y="180" font-size="12" fill="#333">20°C</text>
+        <text x="150" y="120" font-size="12" fill="#333">25°C</text>
+        <text x="250" y="160" font-size="12" fill="#333">30°C</text>
+        <text x="350" y="100" font-size="12" fill="#333">35°C</text>
+        <text x="450" y="140" font-size="12" fill="#333">28°C</text> -->
+
+        <!-- Path for displaying dynamic temperature curve -->
+        <path id="temperaturePath" stroke="blue" stroke-width="2" fill="none" />
+
+        <!-- Tooltip for displaying temperature value on hover -->
+        <text id="tooltip" class="tooltip" x="0" y="0"></text>
+      </svg>
     </div>
 
-    <svg
-      id="temperatureChart"
-      width="90vw"
-      height="200"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <!-- Path for displaying dynamic temperature curve -->
-      <path id="temperaturePath" stroke="blue" stroke-width="2" fill="none" />
-    </svg>
-
     <script>
-      // Sample temperature data (you can replace this with your dynamic data)
-      const temperatures = [20, 25, 30, 35, 28, 22, 18, 15, 20, 25];
-      const unit = "°C"; // Temperature unit
+      // Static temperature values
+      const temperatures = [10, 25, 30, 35, 8];
+
+      // Temperature unit
+      const unit = "°C";
 
       // Function to generate smooth cubic Bézier curve SVG path data based on temperatures
       function generateTemperaturePath(temps) {
@@ -57,20 +91,30 @@
         if (temps.length < 2) return "";
 
         // Move to the first point
-        let pathData = `M 10,${200 - temps[0] * 3}`;
+        let pathData = `M 100,175`;
 
         // Generate cubic Bézier curve segments
-        for (let i = 1; i < temps.length - 1; i++) {
-          const x1 = i * 40 + 10; // X position for current point
-          const y1 = 200 - temps[i] * 3; // Y position for current point
-          const x2 = (i + 1) * 40 + 10; // X position for next point
-          const y2 = 200 - temps[i + 1] * 3; // Y position for next point
-          const cx1 = (x1 + x2) / 2; // X position for control point 1
-          const cy1 = y1; // Y position for control point 1
-          const cx2 = (x1 + x2) / 2; // X position for control point 2
-          const cy2 = y2; // Y position for control point 2
+        for (let i = 0; i < temps.length; i++) {
+          const x = (i + 1) * 100 + 50; // X position for current point
+          const y = 200 - temps[i] * 3; // Y position for current point
 
-          pathData += ` C ${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`; // Cubic Bézier curve segment
+          if (i === 0) {
+            pathData += ` C 100,180 ${x - 50},${y} ${x},${y}`; // Cubic Bézier curve segment
+          } else {
+            pathData += ` S ${x - 50},${y} ${x},${y}`; // Smooth cubic Bézier curve segment
+          }
+
+          // Add temperature text element
+          const tempElement = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+          tempElement.setAttribute("x", x);
+          tempElement.setAttribute("y", y - 5); // Adjust text position above the curve
+          tempElement.setAttribute("font-size", 12);
+          tempElement.setAttribute("fill", "#333");
+          tempElement.textContent = `${temps[i]}${unit}`;
+          document.getElementById("temperatureChart").appendChild(tempElement);
         }
 
         return pathData;
@@ -82,30 +126,8 @@
         document.getElementById("temperaturePath").setAttribute("d", pathData);
       }
 
-      // Function to update temperature values in the container
-      function updateTemperatureContainer() {
-        const container = document.querySelector(".temperature-container");
-        container.innerHTML = ""; // Clear previous content
-
-        temperatures.forEach((temp, index) => {
-          const tempElement = document.createElement("div");
-          tempElement.classList.add("temperature-item");
-          tempElement.textContent = `${temp} ${unit}`;
-          container.appendChild(tempElement);
-        });
-      }
-
       // Initial update
       updateTemperaturePath();
-      updateTemperatureContainer();
-
-      // Simulate dynamic temperature changes (for demo purposes)
-      setInterval(() => {
-        temperatures.push(Math.floor(Math.random() * 20) + 15); // Random temperature update
-        // temperatures.shift(); // Remove the first element to simulate scrolling
-        updateTemperaturePath();
-        updateTemperatureContainer();
-      }, 2000); // Update every 2 seconds (adjust as needed)
     </script>
   </body>
 </html>
