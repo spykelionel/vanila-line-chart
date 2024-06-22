@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Static Temperature Curve</title>
+    <title>Temperature Curve with Marked Points</title>
     <style>
       /* CSS for the scrollable SVG container */
       .scrollable-container {
@@ -21,7 +21,7 @@
         white-space: nowrap; /* Keep temperature values in a single line */
         display: inline-block; /* Ensure inline display for temperature items */
         margin-bottom: 20px; /* Add some margin */
-        border: 1px saddlebrown solid;
+        border: solid red 1px;
       }
 
       /* CSS for temperature value items */
@@ -31,7 +31,7 @@
         transform: translateX(-50%); /* Center horizontally */
         background-color: #f0f0f0; /* Light background color */
         padding: 4px 8px; /* Padding for each item */
-        border: 1px solid #333; /* Border */
+        border: 1px solid #ccc; /* Border */
         border-radius: 4px; /* Rounded corners */
         font-size: 12px; /* Font size */
         pointer-events: none; /* Disable pointer events */
@@ -42,6 +42,14 @@
         width: 100%; /* Full width of the scrollable container */
         height: 200px; /* Fixed height for the SVG */
         position: relative; /* Position relative for absolute positioning */
+      }
+
+      /* CSS for marked points */
+      .marked-point {
+        fill: red; /* Red fill color for the circle */
+        stroke: none; /* No stroke */
+        pointer-events: none; /* Disable pointer events */
+        border: 1px solid blue;
       }
 
       /* CSS for tooltip */
@@ -58,20 +66,16 @@
   </head>
   <body>
     <div class="scrollable-container">
-      <div class="temperature-container">
+      <div class="temperature-container" id="temperatureContainer">
         <!-- Temperature values will be dynamically added here -->
       </div>
 
       <svg id="temperatureChart" xmlns="http://www.w3.org/2000/svg">
-        <!-- Static temperature values -->
-        <!-- <text x="50" y="180" font-size="12" fill="#333">20°C</text>
-        <text x="150" y="120" font-size="12" fill="#333">25°C</text>
-        <text x="250" y="160" font-size="12" fill="#333">30°C</text>
-        <text x="350" y="100" font-size="12" fill="#333">35°C</text>
-        <text x="450" y="140" font-size="12" fill="#333">28°C</text> -->
-
         <!-- Path for displaying dynamic temperature curve -->
         <path id="temperaturePath" stroke="blue" stroke-width="2" fill="none" />
+
+        <!-- Marked points on the temperature curve -->
+        <g id="markedPoints"></g>
 
         <!-- Tooltip for displaying temperature value on hover -->
         <text id="tooltip" class="tooltip" x="0" y="0"></text>
@@ -79,11 +83,9 @@
     </div>
 
     <script>
-      // Static temperature values
-      const temperatures = [10, 25, 30, 35, 8];
-
-      // Temperature unit
-      const unit = "°C";
+      // Static temperature values (initial + dynamic)
+      let temperatures = [22, 50, 10, 30, 26]; // Initial values
+      const unit = "°C"; // Temperature unit
 
       // Function to generate smooth cubic Bézier curve SVG path data based on temperatures
       function generateTemperaturePath(temps) {
@@ -91,7 +93,7 @@
         if (temps.length < 2) return "";
 
         // Move to the first point
-        let pathData = `M 100,175`;
+        let pathData = `M 50,180`;
 
         // Generate cubic Bézier curve segments
         for (let i = 0; i < temps.length; i++) {
@@ -104,14 +106,15 @@
             pathData += ` S ${x - 50},${y} ${x},${y}`; // Smooth cubic Bézier curve segment
           }
 
-          // Add temperature text element
+          // Add temperature label element
           const tempElement = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "text"
           );
           tempElement.setAttribute("x", x);
-          tempElement.setAttribute("y", y - 5); // Adjust text position above the curve
+          tempElement.setAttribute("y", y - 10); // Position above the curve
           tempElement.setAttribute("font-size", 12);
+          tempElement.setAttribute("text-anchor", "middle"); // Center align text horizontally
           tempElement.setAttribute("fill", "#333");
           tempElement.textContent = `${temps[i]}${unit}`;
           document.getElementById("temperatureChart").appendChild(tempElement);
@@ -120,14 +123,50 @@
         return pathData;
       }
 
-      // Update temperature path
-      function updateTemperaturePath() {
+      // Update temperature path and marked points
+      function updateTemperatureChart() {
+        // Update temperature path
         const pathData = generateTemperaturePath(temperatures);
         document.getElementById("temperaturePath").setAttribute("d", pathData);
+
+        // Clear previous marked points
+        const markedPoints = document.getElementById("markedPoints");
+        markedPoints.innerHTML = "";
+
+        // Add new marked points
+        for (let i = 0; i < temperatures.length; i++) {
+          const x = (i + 1) * 100 + 50;
+          const y = 200 - temperatures[i] * 3;
+
+          // Create circle element for marked point
+          const circle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          circle.setAttribute("cx", x);
+          circle.setAttribute("cy", y);
+          circle.setAttribute("r", 5);
+          circle.setAttribute("class", "marked-point");
+          markedPoints.appendChild(circle);
+        }
       }
 
       // Initial update
-      updateTemperaturePath();
+      updateTemperatureChart();
+
+      //   // Update temperatures every 2 seconds
+      //   setInterval(() => {
+      //     // Add new temperatures (simulate dynamic update)
+      //     const newTemps = [24, 27, 32, 36, 29];
+      //     temperatures.push(...newTemps);
+
+      //     // Update chart
+      //     updateTemperatureChart();
+
+      //     // Scroll to the end of the chart container
+      //     const chartContainer = document.getElementById("temperatureChart");
+      //     chartContainer.scrollLeft = chartContainer.scrollWidth;
+      //   }, 2000);
     </script>
   </body>
 </html>
